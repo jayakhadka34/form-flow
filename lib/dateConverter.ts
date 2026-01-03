@@ -1,28 +1,15 @@
-import NepaliDate from "nepali-date-converter";
+import NepaliDate from "nepali-date-converter"
 
-// helper
-const pad = (num: number) => String(num).padStart(2, "0");
+export function formatAD(date: Date) {
+  return date.toISOString().split("T")[0]
+}
 
-// Convert BS → AD
-export const convertBSToAD = (bs: string) => {
-  try {
-    const [year, month, day] = bs.split("-").map(Number);
-    const adDate = NepaliDate.BS2AD(year, month, day);
+export function adToBS(ad: Date) {
+  const bs = new NepaliDate(ad).getBS()
+  return `${bs.year}-${String(bs.month).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`
+}
 
-    return `${adDate.year}-${pad(adDate.month)}-${pad(adDate.day)}`;
-  } catch {
-    return "";
-  }
-};
-
-// Convert AD → BS
-export const convertADToBS = (ad: string) => {
-  try {
-    const [year, month, day] = ad.split("-").map(Number);
-    const bsDate = NepaliDate.AD2BS(year, month, day);
-
-    return `${bsDate.year}-${pad(bsDate.month)}-${pad(bsDate.day)}`;
-  } catch {
-    return "";
-  }
-};
+export function bsToAD(bsString: string) {
+  const ad = new NepaliDate(bsString).getAD()
+  return new Date(ad.year, ad.month - 1, ad.day)
+}

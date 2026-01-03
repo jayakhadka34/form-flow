@@ -2,16 +2,10 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  
-} from "@/components/ui/popover"
 import {
   Form,
   FormControl,
@@ -33,14 +27,14 @@ import { FormDataSchema } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, SubmitHandler } from "react-hook-form";
 
-import { convertADToBS, convertBSToAD } from "@/lib/dateConverter";
-import DatePicker from "react-datepicker";
+
+
 import "react-datepicker/dist/react-datepicker.css";
-import NepaliDate from "nepali-date-converter";
-import { Calendar as CalendarIcon, ChevronDownIcon } from "lucide-react"
 
-import { Calendar } from "@/components/ui/calendar"
 
+
+import { DOBPicker } from "./ui/dob-picker";
+import "@sbmdkl/nepali-datepicker-reactjs/dist/index.css"; 
 
 type Inputs = z.infer<typeof FormDataSchema>;
 
@@ -102,11 +96,15 @@ export default function MultiStepForm() {
     resolver: zodResolver(FormDataSchema),
     mode: "onTouched",
       defaultValues: {
+        fullNameEn: "",
+    fullNameNp: "",
+    gender: "",
     dateOfBirthBS: "",
     dateOfBirthAD: "",
+    phoneNumber: "",
   },
   });
-  const { control, handleSubmit, trigger, reset, setValue } = form;
+  const { control, handleSubmit, trigger, reset, setValue, getValues } = form;
   const processForm: SubmitHandler<Inputs> = (data) => {
     console.log(data);
     reset();
@@ -237,8 +235,8 @@ export default function MultiStepForm() {
                       <FormItem>
                         <FormLabel>Gender</FormLabel>
                         <Select
+                          value={field.value}
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -257,148 +255,43 @@ export default function MultiStepForm() {
                 </div>
              
 
-<div className="sm:col-span-3 ">
+
+
+
+<div className="sm:col-span-3">
+  <DOBPicker
+    control={control}
+    setValue={setValue}
+    getValues={getValues}
+    dobType={dobType}
+    setDobType={setDobType}
+  />
+</div>
+
+
+
+
+
+<div className="sm:col-span-3 mx-16">
   <FormField
-  control={control}
-  name="dateOfBirthBS"
-  render={({ field }) => (
-    <FormItem className="flex flex-col">
-      <FormLabel>Date of Birth (BS)</FormLabel>
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              className="w-full justify-between font-normal"
-            >
-              {field.value
-                ? field.value
-                : "Select date (YYYY-MM-DD)"}
-                <CalendarIcon className="mr-2 h-4 w-4" />
-              <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            captionLayout="dropdown"
-            fromYear={1950}
-            toYear={new Date().getFullYear()}
-            disabled={(date) => date > new Date()}
-            selected={
-              field.value
-                ? (() => {
-                    try {
-                      const ad = new NepaliDate(field.value).getAD()
-                      return new Date(ad.year, ad.month - 1, ad.day)
-                    } catch {
-                      return undefined
-                    }
-                  })()
-                : undefined
-            }
-            onSelect={(date) => {
-              if (!date) {
-                field.onChange("")
-                setValue("dateOfBirthAD", "")
-                return
-              }
-
-              const adStr = formatDate(date)
-
-              try {
-                const bs = new NepaliDate(adStr).getBS()
-                const bsStr = `${bs.year}-${String(bs.month).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`
-
-                field.onChange(bsStr)
-
-                setValue("dateOfBirthAD", adStr, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              } catch (e) {
-                console.error("BS conversion failed", e)
-              }
-            }}
+    control={control}
+    name="phoneNumber"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Phone Number</FormLabel>
+        <FormControl>
+          <Input
+            {...field}
+            type="text" inputMode="numeric"
+            placeholder="98XXXXXXXX"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
-        </PopoverContent>
-      </Popover>
-
-      <FormMessage />
-    </FormItem>
-  )}
-/>
-
-<FormField
-  control={control}
-  name="dateOfBirthAD"
-  render={({ field }) => (
-    <FormItem className="flex flex-col">
-      <FormLabel>Date of Birth (AD)</FormLabel>
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              className="w-full justify-between font-normal"
-            >
-              {field.value
-                ? field.value
-                : "Select date (YYYY-MM-DD)"}
-                 <CalendarIcon className="mr-2 h-4 w-4" />
-              <ChevronDownIcon className="ml-2 h-4 w-4 opacity-50" />
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={parseDate(field.value)}
-            captionLayout="dropdown"
-            fromYear={1950}
-            toYear={new Date().getFullYear()}
-            disabled={(date) => date > new Date()}
-            onSelect={(date) => {
-              if (!date) {
-                field.onChange("");
-                setValue("dateOfBirthBS", "");
-                return;
-              }
-
-              const adStr = formatDate(date);
-              field.onChange(adStr);
-
-              try {
-                const bs = new NepaliDate(adStr).getBS();
-                const bsStr = `${bs.year}-${String(bs.month).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
-
-                setValue("dateOfBirthBS", bsStr, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              } catch (e) {
-                console.error("AD → BS conversion failed", e);
-              }
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-
-      <FormMessage />
-    </FormItem>
-  )}
-/>
-
-
-
-
-
-
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
 </div>
 
 
