@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { motion } from "framer-motion";
 
 import { Input } from "@/components/ui/input";
 
-
+import { NEPALI_DISTRICTS } from "@/lib/nepali-districts";
 import {
   Form,
   FormControl,
@@ -26,14 +26,14 @@ import { z } from "zod";
 import { FormDataSchema } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, SubmitHandler } from "react-hook-form";
-
+import { fileToBase64 } from "@/lib/fileto-base64";
 
 
 import "react-datepicker/dist/react-datepicker.css";
 
 
 
-import { DOBPicker } from "./ui/dob-picker";
+import { DOBPicker } from "./ui/datepicker";
 import "@sbmdkl/nepali-datepicker-reactjs/dist/index.css"; 
 
 type Inputs = z.infer<typeof FormDataSchema>;
@@ -64,12 +64,13 @@ const formatDate = (date: Date) => {
   return `${y}-${m}-${d}`;
 };
 
-
 const steps = [
   {
     id: "Step 1",
     name: "Personal Information",
-    fields: ["fullNameEn", "fullNameNp", "gender"],
+    fields: ["fullNameEn", "fullNameNp", "gender", 
+    "age", 
+    ],
   },
   {
     id: "Step 2",
@@ -99,33 +100,81 @@ export default function MultiStepForm() {
         fullNameEn: "",
     fullNameNp: "",
     gender: "",
+    age: undefined,
     dateOfBirthBS: "",
     dateOfBirthAD: "",
     phoneNumber: "",
   },
   });
-  const { control, handleSubmit, trigger, reset, setValue, getValues } = form;
+
+  const { control, handleSubmit, trigger, reset, setValue, watch,setFocus } = form;
+const age = watch("age");
+const gender = watch("gender");
+
+
+const phoneEnabled = age !== undefined && age > 18 && gender === "male";
+React.useEffect(() => {
+  if (phoneEnabled) {
+    trigger("phoneNumber" , { shouldFocus: true });
+  }
+}, [phoneEnabled, trigger]);
   const processForm: SubmitHandler<Inputs> = (data) => {
     console.log(data);
     reset();
   };
+React.useEffect(() => {
+  if (!phoneEnabled) {
+    setValue("phoneNumber", "");
+  }
+}, [phoneEnabled, setValue]);
 
   type FieldName = keyof Inputs;
 
-  const next = async () => {
-    const fields = steps[currentStep].fields;
-    const output = await trigger(fields as FieldName[], { shouldFocus: true });
+  
+  //   const fields = steps[currentStep].fields;
+  //   const output = await trigger(fields as FieldName[], { shouldFocus: true });
 
-    if (!output) return;
+  //   if (!output) return;
 
-    if (currentStep < steps.length - 1) {
-      if (currentStep === steps.length - 2) {
-        await handleSubmit(processForm)();
-      }
-      setPreviousStep(currentStep);
-      setCurrentStep((step) => step + 1);
+  //   if (currentStep < steps.length - 1) {
+  //     if (currentStep === steps.length - 2) {
+  //       await handleSubmit(processForm)();
+  //     }
+  //     setPreviousStep(currentStep);
+  //     setCurrentStep((step) => step + 1);
+  //   }
+  // };
+// const next = async () => {
+//   const isValid = await trigger(undefined, { shouldFocus: true });
+//   if (!isValid) return;
+
+//   if (currentStep < steps.length - 1) {
+//     if (currentStep === steps.length - 2) {
+//       await handleSubmit(processForm)();
+//     }
+//     setPreviousStep(currentStep);
+//     setCurrentStep((step) => step + 1);
+//   }
+// };
+
+const next = async () => {
+  const isValid = await trigger(undefined, { shouldFocus: true });
+
+  if (!isValid) {
+    const age = watch("age");
+    const gender = watch("gender");
+
+    if (gender === "male" && age !== undefined && age > 18) {
+      setFocus("phoneNumber");
     }
-  };
+
+    return;
+  }
+
+  setPreviousStep(currentStep);
+  setCurrentStep((step) => step + 1);
+};
+
 
   const prev = () => {
     if (currentStep > 0) {
@@ -133,6 +182,38 @@ export default function MultiStepForm() {
       setCurrentStep((step) => step - 1);
     }
   };
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
+const [fileName, setFileName] = useState<string | null>(null);
+
+const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const citizenshipFrontBase64 = await fileToBase64(
+    values.citizenshipFront
+  );
+
+  const payload = {
+    ...values,
+    citizenshipFront: citizenshipFrontBase64,
+  };
+
+  console.log("FINAL PAYLOAD:", payload);
+};
+
+useEffect(() => {
+  return () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  };
+}, [previewUrl]);
+
+// 🔹 Citizenship Back preview state
+const [backPreviewUrl, setBackPreviewUrl] = useState<string | null>(null);
+const [backFileType, setBackFileType] = useState<"image" | "pdf" | null>(null);
+const [backFileName, setBackFileName] = useState<string | null>(null);
+useEffect(() => {
+  return () => {
+    if (backPreviewUrl) URL.revokeObjectURL(backPreviewUrl);
+  };
+}, [backPreviewUrl]);
 
   return (
     <section className="absolute inset-0 flex flex-col justify-between p-24">
@@ -262,7 +343,6 @@ export default function MultiStepForm() {
   <DOBPicker
     control={control}
     setValue={setValue}
-    getValues={getValues}
     dobType={dobType}
     setDobType={setDobType}
   />
@@ -272,26 +352,42 @@ export default function MultiStepForm() {
 
 
 
+
 <div className="sm:col-span-3 mx-16">
-  <FormField
-    control={control}
-    name="phoneNumber"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Phone Number</FormLabel>
-        <FormControl>
-          <Input
-            {...field}
-            type="text" inputMode="numeric"
-            placeholder="98XXXXXXXX"
-            autoCorrect="off"
-            autoCapitalize="off"
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
+<FormField
+  control={control}
+  name="phoneNumber"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>
+        Phone Number {phoneEnabled && <span className="text-red-500">*</span>}
+      </FormLabel>
+
+      <FormControl>
+        <Input
+          {...field}
+          type="text"
+          inputMode="numeric"
+          placeholder="98XXXXXXXX"
+          disabled={!phoneEnabled}
+        />
+      </FormControl>
+
+      {/* 👇 helper message */}
+      {phoneEnabled && (
+        <p className="text-xs text-red-500 mt-1">
+          Required for males above 18
+        </p>
+      )}
+
+      {/* 👇 validation error */}
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+
+
+
 </div>
 
 
@@ -312,131 +408,229 @@ export default function MultiStepForm() {
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-              <h2 className="text-base font-semibold leading-7 text-gray-900">
-                Address
+              <h2 className=" text-2xl font-bold leading-7 text-gray-900">
+                Document Information
               </h2>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                Address where you can receive mail.
+              <p className="mt-1 text-l leading-6 text-gray-600">
+                Provide your Document Details
               </p>
 
               <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+              <div className="sm:col-span-3">
+  <FormField
+    control={control}
+    name="citizenshipNumber"
+    rules={{ required: "Citizenship Number is required" }}
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Citizenship Number</FormLabel>
+        <FormControl>
+          <Input
+            type="text"
+            placeholder="Enter citizenship number"
+            {...field}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
+
+
+             <div className="sm:col-span-3">
+<FormField
+  control={control}
+  name="issuedDistrict"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Issued District</FormLabel>
+
+      <Select value={field.value} onValueChange={field.onChange}>
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue placeholder="Select district" />
+          </SelectTrigger>
+        </FormControl>
+
+        <SelectContent>
+          {NEPALI_DISTRICTS.map((district) => (
+            <SelectItem
+              key={district}
+              value={district.toLowerCase().replace(/\s+/g, "-")}
+            >
+              {district}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+</div>
+
+{/* 
+             <div className="sm:col-span-3">
+  <FormField
+    control={control}
+    name="issuedDateAD"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Issued Date (AD)</FormLabel>
+        <FormControl>
+          <Input
+            type="date"
+            value={field.value || ""}
+            onChange={(e) => {
+              field.onChange(e.target.value);
+
+              // 🔁 Convert AD → BS here
+              const bsDate = convertADtoBS(e.target.value);
+              setValue("issuedDateBS", bsDate);
+            }}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div> */}
+<div className="sm:col-span-3">
+  <DOBPicker
+    control={control}
+    setValue={setValue}
+    dobType={dobType}
+    setDobType={setDobType}
+  />
+</div>
+
+               <div className="sm:col-span-3">
+  {/* <FormField
+    control={control}
+    name="citizenshipFront"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Citizenship Front</FormLabel>
+        <FormControl>
+          <Input
+            type="file"
+            accept=".jpg,.jpeg,.png,.pdf"
+            onChange={(e) => field.onChange(e.target.files?.[0])}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  /> */}<FormField
+          control={form.control}
+          name="citizenshipFront"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Upload Citizenship Front</FormLabel>
+              <FormControl>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    field.onChange(file);
+
+                    if (!file) return;
+
+                    setFileName(file.name);
+                    if (file.type.startsWith("image/")) {
+                      setFileType("image");
+                      setPreviewUrl(URL.createObjectURL(file));
+                    } else {
+                      setFileType("pdf");
+                      setPreviewUrl(null);
+                    }
+                  }}
+                />
+              </FormControl>
+
+              <FormMessage />
+
+              {fileType && (
+                <div className="mt-3">
+                  {fileType === "image" ? (
+                    <img
+                      src={previewUrl!}
+                      alt="Preview"
+                      className="h-40 rounded border object-contain"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 rounded border p-3">
+                      <span className="text-2xl">📄</span>
+                      <span>{fileName}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </FormItem>
+          )}
+        />
+
+</div>
+
+
                 <div className="sm:col-span-3">
-                  <label
-                    htmlFor="country"
-                    className="block text-sm font-medium leading-6 text-gray-900"
-                  >
-                    Citizenship Number
-                  </label>
-                  <div className="mt-2">
-                    <select
-                      id="citizenshipNumber"
-                      {...register("citizenshipNumber")}
-                      autoComplete="country-name"
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:max-w-xs sm:text-sm sm:leading-6"
-                    >
-                      <option>United States</option>
-                      <option>Canada</option>
-                      <option>Mexico</option>
-                    </select>
-                    {errors.citizenshipNumber?.message && (
-                      <p className="mt-2 text-sm text-red-400">
-                        {errors.citizenshipNumber.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
+ <FormField
+  control={control}
+  name="citizenshipBack"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Upload Citizenship Back</FormLabel>
 
-                <div className="col-span-full">
-                  <label
-                    htmlFor="street"
-                    className="block text-sm font-medium leading-6 text-gray-900"
-                  >
-                    Issued District
-                  </label>
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      id="issuedDistrict"
-                      {...register("issuedDistrict")}
-                      autoComplete="issuedDistrict"
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
-                    />
-                    {errors.issuedDistrict?.message && (
-                      <p className="mt-2 text-sm text-red-400">
-                        {errors.issuedDistrict.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
+      <FormControl>
+        <input
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            field.onChange(file);
 
-                <div className="sm:col-span-2 sm:col-start-1">
-                  <label
-                    htmlFor="issuedDate"
-                    className="block text-sm font-medium leading-6 text-gray-900"
-                  >
-                    Issued Date
-                  </label>
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      id="issuedDate"
-                      {...register("issuedDate")}
-                      autoComplete="address-level2"
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
-                    />
-                    {errors.issuedDate?.message && (
-                      <p className="mt-2 text-sm text-red-400">
-                        {errors.issuedDate.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
+            if (!file) return;
 
-                <div className="sm:col-span-2">
-                  <label
-                    htmlFor="state"
-                    className="block text-sm font-medium leading-6 text-gray-900"
-                  >
-                    Upload Citizenship Front
-                  </label>
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      id="citizenshipFront"
-                      {...register("citizenshipFront")}
-                      autoComplete="address-level1"
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
-                    />
-                    {errors.citizenshipFront?.message && (
-                      <p className="mt-2 text-sm text-red-400">
-                        {/* {errors.citizenshipFront.message} */}
-                      </p>
-                    )}
-                  </div>
-                </div>
+            setBackFileName(file.name);
 
-                <div className="sm:col-span-2">
-                  <label
-                    htmlFor="zip"
-                    className="block text-sm font-medium leading-6 text-gray-900"
-                  >
-                    Upload Citizenship Back
-                  </label>
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      id="citizenshipBack"
-                      {...register("citizenshipBack")}
-                      autoComplete="postal-code"
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
-                    />
-                    {errors.citizenshipBack?.message && (
-                      <p className="mt-2 text-sm text-red-400">
-                        {/* {errors.citizenshipBack.message} */}
-                      </p>
-                    )}
-                  </div>
-                </div>
+            if (file.type.startsWith("image/")) {
+              setBackFileType("image");
+              setBackPreviewUrl(URL.createObjectURL(file));
+            } else {
+              setBackFileType("pdf");
+              setBackPreviewUrl(null);
+            }
+          }}
+        />
+      </FormControl>
+
+      <FormMessage />
+
+      {backFileType && (
+        <div className="mt-3">
+          {backFileType === "image" ? (
+            <img
+              src={backPreviewUrl!}
+              alt="Citizenship Back Preview"
+              className="h-40 rounded border object-contain"
+            />
+          ) : (
+            <div className="flex items-center gap-2 rounded border p-3">
+              <span className="text-2xl">📄</span>
+              <span>{backFileName}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </FormItem>
+  )}
+/>
+
+</div>
+
               </div>
             </motion.div>
           )}

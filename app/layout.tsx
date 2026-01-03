@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "@sbmdkl/nepali-datepicker-reactjs/dist/index.css";
+import "./nepali-calender.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
