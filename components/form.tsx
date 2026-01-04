@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useNepaliTyping } from "@/hooks/nepaliTyping";
 
 import { NEPALI_DISTRICTS } from "@/lib/nepali-districts";
 import {
@@ -29,13 +31,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { fileToBase64 } from "@/lib/fileto-base64";
 
-
 import "react-datepicker/dist/react-datepicker.css";
 
-
-
 import { DOBPicker } from "./ui/datepicker";
-import "@sbmdkl/nepali-datepicker-reactjs/dist/index.css"; 
+import "@sbmdkl/nepali-datepicker-reactjs/dist/index.css";
 import { IssueDatePicker } from "./ui/issuedatepicker";
 
 type Inputs = z.infer<typeof FormDataSchema>;
@@ -71,9 +70,7 @@ const steps = [
   {
     id: "Step 1",
     name: "Personal Information",
-    fields: ["fullNameEn", "fullNameNp", "gender", 
-    "age", 
-    ]as FieldName[],
+    fields: ["fullNameEn", "fullNameNp", "gender", "age"] as FieldName[],
   },
   {
     id: "Step 2",
@@ -83,152 +80,145 @@ const steps = [
       "issuedDistrict",
       "citizenshipFront",
       "citizenshipBack",
-    ]as FieldName[],
+    ] as FieldName[],
   },
-  { id: "Step 3", name: "Complete", fields:[] ,},
+  { id: "Step 3", name: "Complete", fields: [] },
 ];
 
 export default function MultiStepForm() {
   const [previousStep, setPreviousStep] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
-  const [dobType, setDobType] = React.useState<'BS' | 'AD'>('AD')
-const [issueDateType, setIssueDateType] = useState<"AD" | "BS">("AD");
+  const { text, onChange } = useNepaliTyping();
+  const [dobType, setDobType] = React.useState<"BS" | "AD">("AD");
+  const [issueDateType, setIssueDateType] = useState<"AD" | "BS">("AD");
 
   const delta = currentStep - previousStep;
 
   const form = useForm<Inputs>({
     resolver: zodResolver(FormDataSchema),
     mode: "onTouched",
-      defaultValues: {
-        fullNameEn: "",
-    fullNameNp: "",
-    gender: "",
-    age: undefined,
-    dateOfBirthBS: "",
-    dateOfBirthAD: "",
-    phoneNumber: "",
-  },
+    defaultValues: {
+      fullNameEn: "",
+      fullNameNp: "",
+      gender: "",
+      age: "",
+      dateOfBirthBS: "",
+      dateOfBirthAD: "",
+      phoneNumber: "",
+      citizenshipNumber: "",
+      issuedDistrict: "",
+      issueDateAD: "",
+      issueDateBS: "",
+      citizenshipFront: null,
+      citizenshipBack: null,
+    },
   });
 
-  const { control, handleSubmit, trigger, reset, setValue, watch,setFocus } = form;
-const age = watch("age");
-const gender = watch("gender");
+  const {
+    control,
+    handleSubmit,
+    trigger,
+    reset,
+    setValue,
+    watch,
+    setFocus,
+    setError,
+  } = form;
 
+  const gender = watch("gender");
+  const age = watch("age");
 
-const phoneEnabled = age !== undefined && age > 18 && gender === "male";
-React.useEffect(() => {
-  if (phoneEnabled) {
-    trigger("phoneNumber" , { shouldFocus: true });
-  }
-}, [phoneEnabled, trigger]);
+  const ageNumber = Number(age);
+
+  const phoneEnabled = !isNaN(ageNumber) && ageNumber > 18 && gender === "male";
+
   const processForm: SubmitHandler<Inputs> = (data) => {
-    console.log(data);
-    reset();
-  };
-React.useEffect(() => {
-  if (!phoneEnabled) {
-    setValue("phoneNumber", "");
-  }
-}, [phoneEnabled, setValue]);
+    console.log("FORM DATA:", data);
 
-  type FieldName = keyof Inputs;
-
-
-
-// const next = async () => {
-//   const isValid = await trigger(undefined, { shouldFocus: true });
-
-//   if (!isValid) {
-//     const age = watch("age");
-//     const gender = watch("gender");
-
-//     if (gender === "male" && age !== undefined && age > 18) {
-//       setFocus("phoneNumber");
-//     }
-
-//     return;
-//   }
-
-//   setPreviousStep(currentStep);
-//   setCurrentStep((step) => step + 1);
-// };
-const goPrevStep = () => {
-  if (currentStep > 0) {
+    // move to "Complete" step (Step 2)
     setPreviousStep(currentStep);
-    setCurrentStep((step) => step - 1);
-  }
-};
+    setCurrentStep(2);
+  };
 
+  React.useEffect(() => {
+    if (!phoneEnabled) {
+      setValue("phoneNumber", "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+  }, [phoneEnabled, setValue]);
 
-const goNextStep = async () => {
-  // 🔹 STEP 1: validate ONLY step 1 fields
-  if (currentStep === 0) {
-    const isValid = await trigger(steps[0].fields, {
-      shouldFocus: true,
-    });
+  const goPrevStep = () => {
+    if (currentStep > 0) {
+      setPreviousStep(currentStep);
+      setCurrentStep((step) => step - 1);
+    }
+  };
 
-    if (!isValid) {
+  const goNextStep = async () => {
+    // STEP 1
+    if (currentStep === 0) {
       const age = watch("age");
       const gender = watch("gender");
+      const phone = watch("phoneNumber");
 
-      if (gender === "male" && age !== undefined && age > 18) {
+      const isValid = await trigger(steps[0].fields, {
+        shouldFocus: true,
+      });
+
+      if (
+        gender === "male" &&
+        Number(age) > 18 &&
+        (!phone || phone.trim() === "")
+      ) {
+        setError("phoneNumber", {
+          type: "manual",
+          message: "Phone number is required for males above 18",
+        });
         setFocus("phoneNumber");
+        return;
       }
-      return;
+
+      if (!isValid) return;
     }
-  }
 
-  // 🔹 STEP 2: validate ONLY step 2 fields
-  if (currentStep === 1) {
-    const isValid = await trigger(steps[1].fields, {
-      shouldFocus: true,
-    });
+    // STEP 2
+    if (currentStep === 1) {
+      const isValid = await trigger(steps[1].fields, {
+        shouldFocus: true,
+      });
 
-    if (!isValid) {
-      toast.error("Please complete all document fields");
-      return;
+      if (!isValid) {
+        toast.error("Please complete all document fields");
+        return;
+      }
     }
-  }
 
-  // ✅ MOVE TO NEXT STEP
-  setPreviousStep(currentStep);
-  setCurrentStep((step) => step + 1);
-};
-
-
+    setPreviousStep(currentStep);
+    setCurrentStep((step) => step + 1);
+  };
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
-const [fileName, setFileName] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
-const onSubmit = async (values: z.infer<typeof formSchema>) => {
-  const citizenshipFrontBase64 = await fileToBase64(
-    values.citizenshipFront
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const [backPreviewUrl, setBackPreviewUrl] = useState<string | null>(null);
+  const [backFileType, setBackFileType] = useState<"image" | "pdf" | null>(
+    null
   );
-
-  const payload = {
-    ...values,
-    citizenshipFront: citizenshipFrontBase64,
-  };
-
-  console.log("FINAL PAYLOAD:", payload);
-};
-
-useEffect(() => {
-  return () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  };
-}, [previewUrl]);
-
-// 🔹 Citizenship Back preview state
-const [backPreviewUrl, setBackPreviewUrl] = useState<string | null>(null);
-const [backFileType, setBackFileType] = useState<"image" | "pdf" | null>(null);
-const [backFileName, setBackFileName] = useState<string | null>(null);
-useEffect(() => {
-  return () => {
-    if (backPreviewUrl) URL.revokeObjectURL(backPreviewUrl);
-  };
-}, [backPreviewUrl]);
+  const [backFileName, setBackFileName] = useState<string | null>(null);
+  useEffect(() => {
+    return () => {
+      if (backPreviewUrl) URL.revokeObjectURL(backPreviewUrl);
+    };
+  }, [backPreviewUrl]);
 
   return (
     <section className="absolute inset-0 flex flex-col justify-between p-24">
@@ -300,20 +290,22 @@ useEffect(() => {
                   />
                 </div>
 
-                {/* Full Name NP */}
                 <div className="sm:col-span-3">
                   <FormField
                     control={control}
-                    name="fullNameNp"
+                    name="nepaliFullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name (Nepali)</FormLabel>
+                        <FormLabel>Full Name (नेपाली)</FormLabel>
                         <FormControl>
                           <Input
-                            {...field}
-                            placeholder="जया खड्का"
-                            autoCorrect="off"
-                            autoCapitalize="off"
+                            value={text}
+                            placeholder="जया"
+                            onChange={(e) => {
+                              const rawValue = e.target.value;
+                              onChange(rawValue);
+                              field.onChange(rawValue);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -331,7 +323,7 @@ useEffect(() => {
                       <FormItem>
                         <FormLabel>Gender</FormLabel>
                         <Select
-                          value={field.value}
+                          value={field.value ?? ""}
                           onValueChange={field.onChange}
                         >
                           <FormControl>
@@ -349,73 +341,53 @@ useEffect(() => {
                     )}
                   />
                 </div>
-             
 
+                <div className="sm:col-span-3">
+                  <DOBPicker
+                    control={control}
+                    setValue={setValue}
+                    dobType={dobType}
+                    setDobType={setDobType}
+                  />
+                </div>
 
+                <div className="sm:col-span-3 mx-16">
+                  <FormField
+                    control={control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Phone Number{" "}
+                          {phoneEnabled && (
+                            <span className="text-red-500">*</span>
+                          )}
+                        </FormLabel>
 
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="98XXXXXXXX"
+                            disabled={!phoneEnabled}
+                          />
+                        </FormControl>
 
-<div className="sm:col-span-3">
-  <DOBPicker
-    control={control}
-    setValue={setValue}
-    dobType={dobType}
-    setDobType={setDobType}
-  />
-</div>
+                        {phoneEnabled && (
+                          <p className="text-xs text-red-500 mt-1">
+                            Required for males above 18
+                          </p>
+                        )}
 
-
-
-
-
-
-<div className="sm:col-span-3 mx-16">
-<FormField
-  control={control}
-  name="phoneNumber"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>
-        Phone Number {phoneEnabled && <span className="text-red-500">*</span>}
-      </FormLabel>
-
-      <FormControl>
-        <Input
-          {...field}
-          type="text"
-          inputMode="numeric"
-          placeholder="98XXXXXXXX"
-          disabled={!phoneEnabled}
-        />
-      </FormControl>
-
-      {/* 👇 helper message */}
-      {phoneEnabled && (
-        <p className="text-xs text-red-500 mt-1">
-          Required for males above 18
-        </p>
-      )}
-
-      {/* 👇 validation error */}
-      <FormMessage />
-    </FormItem>
-  )}
-/>
-
-
-
-</div>
-
-
-
-
-
-
-             
-            
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </motion.div>
           )}
-          
 
           {currentStep === 1 && (
             <motion.div
@@ -431,260 +403,257 @@ useEffect(() => {
               </p>
 
               <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-              <div className="sm:col-span-3">
-  <FormField
-    control={control}
-    name="citizenshipNumber"
-  
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Citizenship Number</FormLabel>
-        <FormControl>
-          <Input
-            type="text"
-            placeholder="Enter citizenship number"
-            {...field}
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-</div>
-
-
-             <div className="sm:col-span-3">
-<FormField
-  control={control}
-  name="issuedDistrict"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Issued District</FormLabel>
-
-      <Select value={field.value} onValueChange={field.onChange}>
-        <FormControl>
-          <SelectTrigger>
-            <SelectValue placeholder="Select district" />
-          </SelectTrigger>
-        </FormControl>
-
-        <SelectContent>
-          {NEPALI_DISTRICTS.map((district) => (
-            <SelectItem
-              key={district}
-              value={district.toLowerCase().replace(/\s+/g, "-")}
-            >
-              {district}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <FormMessage />
-    </FormItem>
-  )}
-/>
-</div>
-
-
-<div className="sm:col-span-3">
-  <IssueDatePicker
-    control={control}
-    setValue={setValue}
-    issueDateType={issueDateType}
-    setIssueDateType={setIssueDateType}
-  />
-</div>
-
-
-               <div className="sm:col-span-3">
-  {/* <FormField
-    control={control}
-    name="citizenshipFront"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Citizenship Front</FormLabel>
-        <FormControl>
-          <Input
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
-            onChange={(e) => field.onChange(e.target.files?.[0])}
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  /> */}<FormField
-          control={form.control}
-          name="citizenshipFront"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Upload Citizenship Front</FormLabel>
-              <FormControl>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    field.onChange(file);
-
-                    if (!file) return;
-
-                    setFileName(file.name);
-                    if (file.type.startsWith("image/")) {
-                      setFileType("image");
-                      setPreviewUrl(URL.createObjectURL(file));
-                    } else {
-                      setFileType("pdf");
-                      setPreviewUrl(null);
-                    }
-                  }}
-                />
-              </FormControl>
-
-              <FormMessage />
-
-              {fileType && (
-                <div className="mt-3">
-                  {fileType === "image" ? (
-                    <img
-                      src={previewUrl!}
-                      alt="Preview"
-                      className="h-40 rounded border object-contain"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 rounded border p-3">
-                      <span className="text-2xl">📄</span>
-                      <span>{fileName}</span>
-                    </div>
-                  )}
+                <div className="sm:col-span-3">
+                  <FormField
+                    control={control}
+                    name="citizenshipNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Citizenship Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="Enter citizenship number"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              )}
-            </FormItem>
-          )}
-        />
-
-</div>
-
 
                 <div className="sm:col-span-3">
- <FormField
-  control={control}
-  name="citizenshipBack"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Upload Citizenship Back</FormLabel>
+                  <FormField
+                    control={control}
+                    name="issuedDistrict"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Issued District</FormLabel>
 
-      <FormControl>
-        <input
-          type="file"
-          accept="image/*,application/pdf"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            field.onChange(file);
+                        <Select
+                          value={field.value ?? ""}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select district" />
+                            </SelectTrigger>
+                          </FormControl>
 
-            if (!file) return;
+                          <SelectContent>
+                            {NEPALI_DISTRICTS.map((district) => (
+                              <SelectItem
+                                key={district}
+                                value={district
+                                  .toLowerCase()
+                                  .replace(/\s+/g, "-")}
+                              >
+                                {district}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-            setBackFileName(file.name);
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            if (file.type.startsWith("image/")) {
-              setBackFileType("image");
-              setBackPreviewUrl(URL.createObjectURL(file));
-            } else {
-              setBackFileType("pdf");
-              setBackPreviewUrl(null);
-            }
-          }}
-        />
-      </FormControl>
+                <div className="sm:col-span-3">
+                  <IssueDatePicker
+                    control={control}
+                    setValue={setValue}
+                    issueDateType={issueDateType}
+                    setIssueDateType={setIssueDateType}
+                  />
+                </div>
 
-      <FormMessage />
+                <div className="sm:col-span-3">
+                  <FormField
+                    control={form.control}
+                    name="citizenshipFront"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Upload Citizenship Front</FormLabel>
+                        <FormControl>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              field.onChange(file);
 
-      {backFileType && (
-        <div className="mt-3">
-          {backFileType === "image" ? (
-            <img
-              src={backPreviewUrl!}
-              alt="Citizenship Back Preview"
-              className="h-40 rounded border object-contain"
-            />
-          ) : (
-            <div className="flex items-center gap-2 rounded border p-3">
-              <span className="text-2xl">📄</span>
-              <span>{backFileName}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </FormItem>
-  )}
-/>
+                              if (!file) return;
 
-</div>
+                              setFileName(file.name);
+                              if (file.type.startsWith("image/")) {
+                                setFileType("image");
+                                setPreviewUrl(URL.createObjectURL(file));
+                              } else {
+                                setFileType("pdf");
+                                setPreviewUrl(null);
+                              }
+                            }}
+                          />
+                        </FormControl>
 
+                        <FormMessage />
+
+                        {fileType && (
+                          <div className="mt-3">
+                            {fileType === "image" ? (
+                              <img
+                                src={previewUrl!}
+                                alt="Preview"
+                                className="h-40 rounded border object-contain"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 rounded border p-3">
+                                <span className="text-2xl">📄</span>
+                                <span>{fileName}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="sm:col-span-3">
+                  <FormField
+                    control={control}
+                    name="citizenshipBack"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Upload Citizenship Back</FormLabel>
+
+                        <FormControl>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              field.onChange(file);
+
+                              if (!file) return;
+
+                              setBackFileName(file.name);
+
+                              if (file.type.startsWith("image/")) {
+                                setBackFileType("image");
+                                setBackPreviewUrl(URL.createObjectURL(file));
+                              } else {
+                                setBackFileType("pdf");
+                                setBackPreviewUrl(null);
+                              }
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormMessage />
+
+                        {backFileType && (
+                          <div className="mt-3">
+                            {backFileType === "image" ? (
+                              <img
+                                src={backPreviewUrl!}
+                                alt="Citizenship Back Preview"
+                                className="h-40 rounded border object-contain"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 rounded border p-3">
+                                <span className="text-2xl">📄</span>
+                                <span>{backFileName}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </motion.div>
           )}
 
           {currentStep === 2 && (
             <>
-              <h2 className="text-base font-semibold leading-7 text-gray-900">
+              <h2 className="text-2xl font-bold leading-7 text-gray-900">
                 Complete
               </h2>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
+              <p className="mt-1 text-l leading-6 text-gray-600">
                 Thank you for your submission.
               </p>
             </>
           )}
+
+          <div className="mt-8 pt-5">
+            <div className="flex justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={goPrevStep}
+                disabled={currentStep === 0}
+                className="text-sky-900 ring-sky-300 hover:bg-sky-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="h-6 w-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 19.5L8.25 12l7.5-7.5"
+                  />
+                </svg>
+              </Button>
+
+              {currentStep === 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={goNextStep}
+                  className="text-sky-900 ring-sky-300 hover:bg-sky-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    className="h-6 w-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                    />
+                  </svg>
+                </Button>
+              )}
+
+              {currentStep === 1 && (
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="text-sky-900 ring-sky-300 hover:bg-sky-50"
+                >
+                  Submit
+                </Button>
+              )}
+            </div>
+          </div>
         </form>
       </Form>
-      {/* Navigation */}
-      <div className="mt-8 pt-5">
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={goPrevStep}
-            disabled={currentStep === 0}
-            className="rounded bg-white px-2 py-1 text-sm font-semibold text-sky-900 shadow-sm ring-1 ring-inset ring-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="h-6 w-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 19.5L8.25 12l7.5-7.5"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={goNextStep}
-            disabled={currentStep === steps.length - 1}
-            className="rounded bg-white px-2 py-1 text-sm font-semibold text-sky-900 shadow-sm ring-1 ring-inset ring-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="h-6 w-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
     </section>
   );
 }
