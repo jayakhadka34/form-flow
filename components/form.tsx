@@ -2,6 +2,7 @@
 
 import React, { useState,useEffect } from "react";
 import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
 
 import { Input } from "@/components/ui/input";
 
@@ -35,8 +36,10 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import { DOBPicker } from "./ui/datepicker";
 import "@sbmdkl/nepali-datepicker-reactjs/dist/index.css"; 
+import { IssueDatePicker } from "./ui/issuedatepicker";
 
 type Inputs = z.infer<typeof FormDataSchema>;
+type FieldName = keyof Inputs;
 
 const parseDate = (value?: string | Date | null) => {
   if (!value) return null;
@@ -70,7 +73,7 @@ const steps = [
     name: "Personal Information",
     fields: ["fullNameEn", "fullNameNp", "gender", 
     "age", 
-    ],
+    ]as FieldName[],
   },
   {
     id: "Step 2",
@@ -78,18 +81,18 @@ const steps = [
     fields: [
       "citizenshipNumber",
       "issuedDistrict",
-      "issuedDate",
       "citizenshipFront",
       "citizenshipBack",
-    ],
+    ]as FieldName[],
   },
-  { id: "Step 3", name: "Complete" },
+  { id: "Step 3", name: "Complete", fields:[] ,},
 ];
 
 export default function MultiStepForm() {
   const [previousStep, setPreviousStep] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [dobType, setDobType] = React.useState<'BS' | 'AD'>('AD')
+const [issueDateType, setIssueDateType] = useState<"AD" | "BS">("AD");
 
   const delta = currentStep - previousStep;
 
@@ -130,58 +133,70 @@ React.useEffect(() => {
 
   type FieldName = keyof Inputs;
 
-  
-  //   const fields = steps[currentStep].fields;
-  //   const output = await trigger(fields as FieldName[], { shouldFocus: true });
 
-  //   if (!output) return;
 
-  //   if (currentStep < steps.length - 1) {
-  //     if (currentStep === steps.length - 2) {
-  //       await handleSubmit(processForm)();
-  //     }
-  //     setPreviousStep(currentStep);
-  //     setCurrentStep((step) => step + 1);
-  //   }
-  // };
 // const next = async () => {
 //   const isValid = await trigger(undefined, { shouldFocus: true });
-//   if (!isValid) return;
 
-//   if (currentStep < steps.length - 1) {
-//     if (currentStep === steps.length - 2) {
-//       await handleSubmit(processForm)();
+//   if (!isValid) {
+//     const age = watch("age");
+//     const gender = watch("gender");
+
+//     if (gender === "male" && age !== undefined && age > 18) {
+//       setFocus("phoneNumber");
 //     }
-//     setPreviousStep(currentStep);
-//     setCurrentStep((step) => step + 1);
+
+//     return;
 //   }
+
+//   setPreviousStep(currentStep);
+//   setCurrentStep((step) => step + 1);
 // };
+const goPrevStep = () => {
+  if (currentStep > 0) {
+    setPreviousStep(currentStep);
+    setCurrentStep((step) => step - 1);
+  }
+};
 
-const next = async () => {
-  const isValid = await trigger(undefined, { shouldFocus: true });
 
-  if (!isValid) {
-    const age = watch("age");
-    const gender = watch("gender");
+const goNextStep = async () => {
+  // 🔹 STEP 1: validate ONLY step 1 fields
+  if (currentStep === 0) {
+    const isValid = await trigger(steps[0].fields, {
+      shouldFocus: true,
+    });
 
-    if (gender === "male" && age !== undefined && age > 18) {
-      setFocus("phoneNumber");
+    if (!isValid) {
+      const age = watch("age");
+      const gender = watch("gender");
+
+      if (gender === "male" && age !== undefined && age > 18) {
+        setFocus("phoneNumber");
+      }
+      return;
     }
-
-    return;
   }
 
+  // 🔹 STEP 2: validate ONLY step 2 fields
+  if (currentStep === 1) {
+    const isValid = await trigger(steps[1].fields, {
+      shouldFocus: true,
+    });
+
+    if (!isValid) {
+      toast.error("Please complete all document fields");
+      return;
+    }
+  }
+
+  // ✅ MOVE TO NEXT STEP
   setPreviousStep(currentStep);
   setCurrentStep((step) => step + 1);
 };
 
 
-  const prev = () => {
-    if (currentStep > 0) {
-      setPreviousStep(currentStep);
-      setCurrentStep((step) => step - 1);
-    }
-  };
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
 const [fileName, setFileName] = useState<string | null>(null);
@@ -420,7 +435,7 @@ useEffect(() => {
   <FormField
     control={control}
     name="citizenshipNumber"
-    rules={{ required: "Citizenship Number is required" }}
+  
     render={({ field }) => (
       <FormItem>
         <FormLabel>Citizenship Number</FormLabel>
@@ -471,40 +486,16 @@ useEffect(() => {
 />
 </div>
 
-{/* 
-             <div className="sm:col-span-3">
-  <FormField
-    control={control}
-    name="issuedDateAD"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Issued Date (AD)</FormLabel>
-        <FormControl>
-          <Input
-            type="date"
-            value={field.value || ""}
-            onChange={(e) => {
-              field.onChange(e.target.value);
 
-              // 🔁 Convert AD → BS here
-              const bsDate = convertADtoBS(e.target.value);
-              setValue("issuedDateBS", bsDate);
-            }}
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-</div> */}
 <div className="sm:col-span-3">
-  <DOBPicker
+  <IssueDatePicker
     control={control}
     setValue={setValue}
-    dobType={dobType}
-    setDobType={setDobType}
+    issueDateType={issueDateType}
+    setIssueDateType={setIssueDateType}
   />
 </div>
+
 
                <div className="sm:col-span-3">
   {/* <FormField
@@ -652,7 +643,7 @@ useEffect(() => {
         <div className="flex justify-between">
           <button
             type="button"
-            onClick={prev}
+            onClick={goPrevStep}
             disabled={currentStep === 0}
             className="rounded bg-white px-2 py-1 text-sm font-semibold text-sky-900 shadow-sm ring-1 ring-inset ring-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -673,7 +664,7 @@ useEffect(() => {
           </button>
           <button
             type="button"
-            onClick={next}
+            onClick={goNextStep}
             disabled={currentStep === steps.length - 1}
             className="rounded bg-white px-2 py-1 text-sm font-semibold text-sky-900 shadow-sm ring-1 ring-inset ring-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
