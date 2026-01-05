@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Control, UseFormSetValue } from "react-hook-form";
@@ -52,65 +53,61 @@ export function IssueDatePicker({
         </Button>
       </div>
 
-      {/* AD Input */}
-      {issueDateType === "AD" && (
-        <FormField
-          control={control}
-          name="issueDateAD"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Issue Date (AD)</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  value={field.value || ""}
-                  onChange={(e) => {
-                    const ad = e.target.value;
-                    field.onChange(ad);
+     
+      <FormField
+        control={control}
+        name="issueDateAD"
+        render={({ field }) => (
+          <FormItem className={issueDateType !== "AD" ? "hidden" : ""}>
+            <FormLabel>Issue Date (AD)</FormLabel>
+            <FormControl>
+              <Input
+                type="date"
+                value={field.value ?? ""}
+                onChange={(e) => {
+                  const ad = e.target.value;
+                  field.onChange(ad);
 
-                    const bs = adToBs(ad);
-                    setValue("issueDateBS", bs, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+                  if (!ad) return;
+                  setValue("issueDateBS", adToBs(ad), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-      {/* BS Input */}
-      {issueDateType === "BS" && (
-        <FormField
-          control={control}
-          name="issueDateBS"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Issue Date (BS)</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="YYYY-MM-DD"
-                  value={field.value || ""}
-                  onChange={(e) => {
-                    const bs = e.target.value;
-                    field.onChange(bs);
+     
+      <FormField
+        control={control}
+        name="issueDateBS"
+        render={({ field }) => (
+          <FormItem className={issueDateType !== "BS" ? "hidden" : ""}>
+            <FormLabel>Issue Date (BS)</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="YYYY-MM-DD"
+                value={field.value ?? ""}
+                onChange={(e) => {
+                  const bs = e.target.value;
+                  field.onChange(bs);
 
-                    const ad = bsToAd(bs);
-                    setValue("issueDateAD", ad, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+                  if (!bs) return;
+                  setValue("issueDateAD", bsToAd(bs), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 
 import { z } from "zod";
-import { FormDataSchema } from "@/lib/schema";
+import { FormDataSchema } from "@/lib/schemas/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { fileToBase64 } from "@/lib/fileto-base64";
@@ -135,7 +135,6 @@ export default function MultiStepForm() {
   const processForm: SubmitHandler<Inputs> = (data) => {
     console.log("FORM DATA:", data);
 
-    // move to "Complete" step (Step 2)
     setPreviousStep(currentStep);
     setCurrentStep(2);
   };
@@ -157,7 +156,6 @@ export default function MultiStepForm() {
   };
 
   const goNextStep = async () => {
-    // STEP 1
     if (currentStep === 0) {
       const age = watch("age");
       const gender = watch("gender");
@@ -183,7 +181,6 @@ export default function MultiStepForm() {
       if (!isValid) return;
     }
 
-    // STEP 2
     if (currentStep === 1) {
       const isValid = await trigger(steps[1].fields, {
         shouldFocus: true,
