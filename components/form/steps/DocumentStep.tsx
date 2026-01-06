@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -30,8 +29,6 @@ import { NEPALI_DISTRICTS } from "@/lib/nepali-districts";
 import { IssueDatePicker } from "@/components/ui/issuedatepicker";
 import { Inputs } from "../form.types";
 
-
-
 type PreviewState = {
   previewUrl: string | null;
   setPreviewUrl: React.Dispatch<React.SetStateAction<string | null>>;
@@ -43,9 +40,7 @@ type PreviewState = {
   backPreviewUrl: string | null;
   setBackPreviewUrl: React.Dispatch<React.SetStateAction<string | null>>;
   backFileType: "image" | "pdf" | null;
-  setBackFileType: React.Dispatch<
-    React.SetStateAction<"image" | "pdf" | null>
-  >;
+  setBackFileType: React.Dispatch<React.SetStateAction<"image" | "pdf" | null>>;
   backFileName: string | null;
   setBackFileName: React.Dispatch<React.SetStateAction<string | null>>;
 };
@@ -56,8 +51,6 @@ type DocumentStepProps = {
   setIssueDateType: (v: "BS" | "AD") => void;
   previewState: PreviewState;
 };
-
-
 
 export function DocumentStep({
   form,
@@ -82,7 +75,6 @@ export function DocumentStep({
     setBackFileName,
   } = previewState;
 
- 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [activePreview, setActivePreview] = useState<{
     url: string;
@@ -90,7 +82,6 @@ export function DocumentStep({
     title: string;
   } | null>(null);
 
- 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -98,12 +89,7 @@ export function DocumentStep({
     };
   }, [previewUrl, backPreviewUrl]);
 
-  
-  const openPreview = (
-    url: string,
-    type: "image" | "pdf",
-    title: string
-  ) => {
+  const openPreview = (url: string, type: "image" | "pdf", title: string) => {
     setActivePreview({ url, type, title });
     setIsPreviewOpen(true);
   };
@@ -118,7 +104,6 @@ export function DocumentStep({
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -135,7 +120,6 @@ export function DocumentStep({
           />
         </div>
 
-       
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -178,7 +162,6 @@ export function DocumentStep({
           />
         </div>
 
-        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -186,58 +169,52 @@ export function DocumentStep({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Citizenship Front</FormLabel>
+
                 <FormControl>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      field.onChange(file);
+                  {!previewUrl ? (
+                    <label className="inline-block cursor-pointer rounded border px-4 py-2 text-sm text-sky-700 hover:bg-sky-50">
+                      Upload file
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          field.onChange(file);
 
-                      if (!file) return;
+                          if (!file) return;
 
-                      const url = URL.createObjectURL(file);
-                      setPreviewUrl(url);
-                      setFileName(file.name);
-                      setFileType(
-                        file.type.startsWith("image") ? "image" : "pdf"
-                      );
-                    }}
-                  />
+                          const url = URL.createObjectURL(file);
+                          setPreviewUrl(url);
+                          setFileName(file.name);
+                          setFileType(
+                            file.type.startsWith("image") ? "image" : "pdf"
+                          );
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="max-w-[180px] truncate text-sm text-gray-700">
+                        {fileName}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openPreview(
+                            previewUrl,
+                            fileType!,
+                            fileName || "Citizenship Front"
+                          )
+                        }
+                        className="rounded border px-3 py-1 text-sm text-sky-700 hover:bg-sky-50"
+                      >
+                        View
+                      </button>
+                    </div>
+                  )}
                 </FormControl>
-
-              
-{previewUrl && fileType === "image" && (
-  <div className="relative mt-2 inline-block">
-    <img
-      src={previewUrl}
-      alt="Front Preview"
-      className="h-32 rounded border"
-    />
-
-    <button
-      type="button"
-      onClick={() =>
-        openPreview(previewUrl, "image", fileName || "Citizenship Front")
-      }
-      className="absolute bottom-1 right-1 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black"
-    >
-      View
-    </button>
-  </div>
-)}
-
-{fileType === "pdf" && (
-  <button
-    type="button"
-    onClick={() =>
-      openPreview(previewUrl!, "pdf", fileName || "Citizenship Front")
-    }
-    className="mt-2 text-sm text-blue-600 underline"
-  >
-    View PDF
-  </button>
-)}
 
                 <FormMessage />
               </FormItem>
@@ -245,7 +222,6 @@ export function DocumentStep({
           />
         </div>
 
-        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -253,67 +229,52 @@ export function DocumentStep({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Citizenship Back</FormLabel>
+
                 <FormControl>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      field.onChange(file);
+                  {!backPreviewUrl ? (
+                    <label className="inline-block cursor-pointer rounded border px-4 py-2 text-sm text-sky-700 hover:bg-sky-50">
+                      Upload file
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          field.onChange(file);
 
-                      if (!file) return;
+                          if (!file) return;
 
-                      const url = URL.createObjectURL(file);
-                      setBackPreviewUrl(url);
-                      setBackFileName(file.name);
-                      setBackFileType(
-                        file.type.startsWith("image") ? "image" : "pdf"
-                      );
-                    }}
-                  />
+                          const url = URL.createObjectURL(file);
+                          setBackPreviewUrl(url);
+                          setBackFileName(file.name);
+                          setBackFileType(
+                            file.type.startsWith("image") ? "image" : "pdf"
+                          );
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="max-w-[180px] truncate text-sm text-gray-700">
+                        {backFileName}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openPreview(
+                            backPreviewUrl,
+                            backFileType!,
+                            backFileName || "Citizenship Back"
+                          )
+                        }
+                        className="rounded border px-3 py-1 text-sm text-sky-700 hover:bg-sky-50"
+                      >
+                        View
+                      </button>
+                    </div>
+                  )}
                 </FormControl>
-
-               
-                {backPreviewUrl && backFileType === "image" && (
-  <div className="relative mt-2 inline-block">
-    <img
-      src={backPreviewUrl}
-      alt="Back Preview"
-      className="h-32 rounded border"
-    />
-
-    <button
-      type="button"
-      onClick={() =>
-        openPreview(
-          backPreviewUrl,
-          "image",
-          backFileName || "Citizenship Back"
-        )
-      }
-      className="absolute bottom-1 right-1 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black"
-    >
-      View
-    </button>
-  </div>
-)}
-
-{backFileType === "pdf" && (
-  <button
-    type="button"
-    onClick={() =>
-      openPreview(
-        backPreviewUrl!,
-        "pdf",
-        backFileName || "Citizenship Back"
-      )
-    }
-    className="mt-2 text-sm text-blue-600 underline"
-  >
-    View PDF
-  </button>
-)}
-
 
                 <FormMessage />
               </FormItem>
@@ -322,7 +283,6 @@ export function DocumentStep({
         </div>
       </div>
 
-     
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
@@ -338,10 +298,7 @@ export function DocumentStep({
           )}
 
           {activePreview?.type === "pdf" && (
-            <iframe
-              src={activePreview.url}
-              className="h-[80vh] w-full"
-            />
+            <iframe src={activePreview.url} className="h-[80vh] w-full" />
           )}
         </DialogContent>
       </Dialog>
