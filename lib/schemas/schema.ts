@@ -1,28 +1,3 @@
-
-//   if (!data.dateOfBirthAD && !data.dateOfBirthBS) {
-//     ctx.addIssue({
-//       path: ["dateOfBirthAD"],
-//       message: "Date of birth is required",
-//       code: z.ZodIssueCode.custom,
-//     });
-//   }
-// if (
-//   data.gender === "male" &&
-//   typeof data.age === "number" &&
-//   data.age > 18
-// ) {
-//   if (!data.phoneNumber) {
-//     ctx.addIssue({
-//       path: ["phoneNumber"],
-//       message: "Phone number is required for males above 18 years",
-//       code: z.ZodIssueCode.custom,
-//     });
-//   }
-// }
-
-
-// });
-
 import { z } from "zod";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -57,13 +32,13 @@ export const Step1Schema = z
       }),
 
     gender: z.enum(["male", "female", "other"], {
-      required_error: "Gender is required",
+      message: "Gender is required",
     }),
-
-    age: z.preprocess(
-      (val) => (val === "" || val === undefined ? undefined : Number(val)),
-      z.number().int().min(0).max(120)
-    ),
+    age: z
+      .number()
+      .int("Age must be an integer")
+      .min(0, "Age must be a positive number")
+      .optional(),
 
     phoneNumber: z
       .string()

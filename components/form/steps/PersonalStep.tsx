@@ -21,7 +21,7 @@ import {
 
 import { DOBPicker } from "@/components/ui/datepicker";
 import { useNepaliTyping } from "@/hooks/nepaliTyping";
-import { Inputs } from "../MultiStepForm";
+import type { Inputs } from "../MultiStepForm";
 
 type PersonalStepProps = {
   form: UseFormReturn<Inputs>;
