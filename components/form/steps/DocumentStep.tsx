@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+   DialogDescription,
 } from "@/components/ui/dialog";
 
 import { NEPALI_DISTRICTS } from "@/lib/nepali-districts";
@@ -283,25 +284,34 @@ export function DocumentStep({
         </div>
       </div>
 
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{activePreview?.title}</DialogTitle>
-          </DialogHeader>
+     <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+  <DialogContent className="max-w-4xl">
+    <DialogHeader>
+      <DialogTitle>{activePreview?.title}</DialogTitle>
 
-          {activePreview?.type === "image" && (
-            <img
-              src={activePreview.url}
-              alt="Preview"
-              className="w-full rounded"
-            />
-          )}
+      {/* Accessibility description (hidden visually) */}
+      <DialogDescription className="sr-only">
+        Document preview dialog
+      </DialogDescription>
+    </DialogHeader>
 
-          {activePreview?.type === "pdf" && (
-            <iframe src={activePreview.url} className="h-[80vh] w-full" />
-          )}
-        </DialogContent>
-      </Dialog>
+    {activePreview?.type === "image" && (
+      <img
+        src={activePreview.url}
+        alt={activePreview.title}
+        className="w-full rounded"
+      />
+    )}
+
+    {activePreview?.type === "pdf" && (
+      <iframe
+        src={activePreview.url}
+        className="h-[80vh] w-full"
+      />
+    )}
+  </DialogContent>
+</Dialog>
+
     </>
   );
 }
