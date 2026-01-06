@@ -289,7 +289,7 @@ export function DocumentStep({
     <DialogHeader>
       <DialogTitle>{activePreview?.title}</DialogTitle>
 
-      {/* Accessibility description (hidden visually) */}
+     
       <DialogDescription className="sr-only">
         Document preview dialog
       </DialogDescription>
