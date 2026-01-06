@@ -1,9 +1,6 @@
-
 "use client";
 
 import { Control, UseFormSetValue } from "react-hook-form";
-import NepaliDate from "nepali-date-converter";
-
 import {
   FormField,
   FormItem,
@@ -13,6 +10,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+import { adToBs, bsToAd } from "@/lib/date";
 
 interface IssueDatePickerProps {
   control: Control<any>;
@@ -27,15 +26,12 @@ export function IssueDatePicker({
   issueDateType,
   setIssueDateType,
 }: IssueDatePickerProps) {
-  const adToBs = (ad: string) =>
-    new NepaliDate(new Date(ad)).format("YYYY-MM-DD");
-
-  const bsToAd = (bs: string) =>
-    new NepaliDate(bs).toJsDate().toISOString().split("T")[0];
+ 
+  const todayAD = new Date().toISOString().split("T")[0];
 
   return (
     <div className="space-y-4">
-      {/* Toggle */}
+ 
       <div className="flex gap-2">
         <Button
           type="button"
@@ -53,61 +49,81 @@ export function IssueDatePicker({
         </Button>
       </div>
 
+      {issueDateType === "AD" && (
+        <FormField
+          control={control}
+          name="issueDateAD"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Issue Date (AD)</FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  max={todayAD} 
+                  value={field.value || ""}
+                  onChange={(e) => {
+                    const ad = e.target.value;
+                    field.onChange(ad);
+
+                    if (!ad) return;
+
+                    const bs = adToBs(ad);
+
+                    setValue("issueDateBS", bs, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
      
-      <FormField
-        control={control}
-        name="issueDateAD"
-        render={({ field }) => (
-          <FormItem className={issueDateType !== "AD" ? "hidden" : ""}>
-            <FormLabel>Issue Date (AD)</FormLabel>
-            <FormControl>
-              <Input
-                type="date"
-                value={field.value ?? ""}
-                onChange={(e) => {
-                  const ad = e.target.value;
-                  field.onChange(ad);
+      {issueDateType === "BS" && (
+        <FormField
+          control={control}
+          name="issueDateBS"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Issue Date (BS)</FormLabel>
+              <FormControl>
+                <Input
+                  type="text" className="text-right"
+                  placeholder="YYYY-MM-DD"
+                  value={field.value || ""}
+                  onChange={(e) => {
+                    const bs = e.target.value;
+                    field.onChange(bs);
 
-                  if (!ad) return;
-                  setValue("issueDateBS", adToBs(ad), {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+                    
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(bs)) return;
 
-     
-      <FormField
-        control={control}
-        name="issueDateBS"
-        render={({ field }) => (
-          <FormItem className={issueDateType !== "BS" ? "hidden" : ""}>
-            <FormLabel>Issue Date (BS)</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="YYYY-MM-DD"
-                value={field.value ?? ""}
-                onChange={(e) => {
-                  const bs = e.target.value;
-                  field.onChange(bs);
+                    const adDate = bsToAd(bs);
+                    const today = new Date();
 
-                  if (!bs) return;
-                  setValue("issueDateAD", bsToAd(bs), {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+                  
+                    if (adDate > today) return;
+
+                    setValue(
+                      "issueDateAD",
+                      adDate.toISOString().split("T")[0],
+                      {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      }
+                    );
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   );
 }

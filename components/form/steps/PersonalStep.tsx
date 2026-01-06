@@ -21,7 +21,7 @@ import {
 
 import { DOBPicker } from "@/components/ui/datepicker";
 import { useNepaliTyping } from "@/hooks/nepaliTyping";
-import { Inputs } from "../form.types";
+import { Inputs } from "../MultiStepForm";
 
 type PersonalStepProps = {
   form: UseFormReturn<Inputs>;
@@ -29,17 +29,10 @@ type PersonalStepProps = {
   setDobType: (v: "BS" | "AD") => void;
 };
 
-export function PersonalStep({
-  form,
-  dobType,
-  setDobType,
-}: PersonalStepProps) {
+export function PersonalStep({ form, dobType, setDobType }: PersonalStepProps) {
   const { control, watch, setValue } = form;
 
-  const nepali = useNepaliTyping()
-
-  
-
+  const nepali = useNepaliTyping();
 
   const gender = watch("gender");
   const age = Number(watch("age"));
@@ -59,12 +52,9 @@ export function PersonalStep({
       <h2 className="text-2xl font-bold text-gray-900 py-12">
         Personal Information
       </h2>
-      <p className="-mt-8  text-gray-600 ">
-        Provide your personal details.
-      </p>
+      <p className="-mt-8  text-gray-600 ">Provide your personal details.</p>
 
       <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -85,53 +75,41 @@ export function PersonalStep({
           />
         </div>
 
-     
         <div className="sm:col-span-3">
+          <FormField
+            control={control}
+            name="fullNameNp"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name (नेपाली)</FormLabel>
 
+                <FormControl>
+                  <Input
+                    placeholder="जया खड्का"
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") {
+                        e.preventDefault();
+                        field.onChange(
+                          nepali.convertOnSpace(field.value || "")
+                        );
+                      }
+                    }}
+                    onBlur={() => {
+                      field.onChange(
+                        nepali.convertRemainingWord(field.value || "")
+                      );
+                    }}
+                  />
+                </FormControl>
 
-<FormField
-  control={control}
-  name="fullNameNp"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>
-        Full Name (Nepali)
-        <span className="text-muted-foreground"> (Optional)</span>
-      </FormLabel>
-
-      <FormControl>
-        <Input
-          placeholder="जया खड्का"
-          value={field.value || ""}
-          onChange={(e) => field.onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === " ") {
-              e.preventDefault()
-              field.onChange(
-                nepali.convertOnSpace(field.value || "")
-              )
-            }
-          }}
-          onBlur={() => {
-            field.onChange(
-              nepali.convertRemainingWord(field.value || "")
-            )
-          }}
-        />
-      </FormControl>
-
-      <FormMessage />
-    </FormItem>
-  )}
-/>
-
-
-
-
-
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        
         <div className="sm:col-span-4">
           <FormField
             control={control}
@@ -160,7 +138,6 @@ export function PersonalStep({
           />
         </div>
 
-        
         <div className="sm:col-span-3">
           <DOBPicker
             control={control}
@@ -169,8 +146,28 @@ export function PersonalStep({
             setDobType={setDobType}
           />
         </div>
+  <div className="sm:col-span-3">
+  <FormField
+    control={control}
+    name="age"
+    render={({ field }) => (
+      <FormItem>
+      
+        <FormLabel className="invisible">Age</FormLabel>
 
-        
+        <FormControl>
+          <div className="h-12 flex items-center gap-2 text-sm text-gray-900">
+            <span className="font-medium">Age :</span>
+            <span>{field.value ?? ""}</span>
+          </div>
+        </FormControl>
+      </FormItem>
+    )}
+  />
+</div>
+
+
+
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -179,9 +176,7 @@ export function PersonalStep({
               <FormItem>
                 <FormLabel>
                   Phone Number{" "}
-                  {phoneEnabled && (
-                    <span className="text-red-500">*</span>
-                  )}
+                  {phoneEnabled && <span className="text-red-500">*</span>}
                 </FormLabel>
                 <FormControl>
                   <Input

@@ -35,7 +35,7 @@ export const FormDataSchema = z
       required_error: "Gender is required",
     }),
 
-    age: z.number().int().min(0).max(120).optional(),
+    age: z.number().int().min(0).max(120),
 
     dateOfBirthAD: z.string().optional(),
     dateOfBirthBS: z.string().optional(),
@@ -59,6 +59,7 @@ export const FormDataSchema = z
     citizenshipFront: fileSchema,
     citizenshipBack: fileSchema,
   })
+
 
   .refine((data) => data.issueDateAD || data.issueDateBS, {
     message: "Issue date is required",

@@ -1,8 +1,6 @@
 "use client";
 
 import { Control, UseFormSetValue } from "react-hook-form";
-import NepaliDate from "nepali-date-converter";
-
 import {
   FormField,
   FormItem,
@@ -12,6 +10,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+import { adToBs, bsToAd, calculateAge } from "@/lib/date";
 
 interface DOBPickerProps {
   control: Control<any>;
@@ -26,26 +26,10 @@ export function DOBPicker({
   dobType,
   setDobType,
 }: DOBPickerProps) {
-  const calculateAge = (ad: string) => {
-    const dob = new Date(ad);
-    if (isNaN(dob.getTime())) return undefined;
-
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return age;
-  };
-
-  const adToBs = (ad: string) =>
-    new NepaliDate(new Date(ad)).format("YYYY-MM-DD");
-
-  const bsToAd = (bs: string) =>
-    new NepaliDate(bs).toJsDate().toISOString().split("T")[0];
+  const todayAD = new Date().toISOString().split("T")[0];
 
   return (
     <div className="space-y-4">
-      {/* Toggle */}
       <div className="flex gap-2">
         <Button
           type="button"
@@ -63,7 +47,6 @@ export function DOBPicker({
         </Button>
       </div>
 
-      {/* AD Input */}
       {dobType === "AD" && (
         <FormField
           control={control}
@@ -74,13 +57,16 @@ export function DOBPicker({
               <FormControl>
                 <Input
                   type="date"
+                  max={todayAD} 
                   value={field.value || ""}
                   onChange={(e) => {
                     const ad = e.target.value;
                     field.onChange(ad);
 
+                    if (!ad) return;
+
                     const bs = adToBs(ad);
-                    const age = calculateAge(ad);
+                    const age = calculateAge(new Date(ad));
 
                     setValue("dateOfBirthBS", bs, {
                       shouldValidate: true,
@@ -100,7 +86,6 @@ export function DOBPicker({
         />
       )}
 
-      {/* BS Input */}
       {dobType === "BS" && (
         <FormField
           control={control}
@@ -110,19 +95,30 @@ export function DOBPicker({
               <FormLabel>Date of Birth (BS)</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="YYYY-MM-DD"
+                  type="text"
+                  placeholder="YYYY-MM-DD" 
                   value={field.value || ""}
                   onChange={(e) => {
                     const bs = e.target.value;
                     field.onChange(bs);
 
-                    const ad = bsToAd(bs);
-                    const age = calculateAge(ad);
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(bs)) return;
 
-                    setValue("dateOfBirthAD", ad, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
+                    const adDate = bsToAd(bs);
+                    const today = new Date();
+
+                    if (adDate > today) return;
+
+                    const age = calculateAge(adDate);
+
+                    setValue(
+                      "dateOfBirthAD",
+                      adDate.toISOString().split("T")[0],
+                      {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      }
+                    );
 
                     setValue("age", age, {
                       shouldValidate: true,

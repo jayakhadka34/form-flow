@@ -71,14 +71,12 @@ export default function MultiStepForm() {
   });
 
   const {
-    control,
+    
     handleSubmit,
     trigger,
-    reset,
-    setValue,
-    watch,
-    setFocus,
-    setError,
+   
+   
+   
   } = form;
 
   const processForm = async (data: Inputs) => {
@@ -111,9 +109,7 @@ export default function MultiStepForm() {
 
   const goNextStep = async () => {
     if (currentStep === 0) {
-      const age = watch("age");
-      const gender = watch("gender");
-      const phone = watch("phoneNumber");
+    
 
       const dobField = dobType === "AD" ? "dateOfBirthAD" : "dateOfBirthBS";
 
@@ -124,19 +120,6 @@ export default function MultiStepForm() {
         dobField,
         "phoneNumber",
       ]);
-
-      if (
-        gender === "male" &&
-        Number(age) > 18 &&
-        (!phone || phone.trim() === "")
-      ) {
-        setError("phoneNumber", {
-          type: "manual",
-          message: "Phone number is required for males above 18",
-        });
-        setFocus("phoneNumber");
-        return;
-      }
 
       if (!isValid) return;
     }
@@ -155,6 +138,13 @@ export default function MultiStepForm() {
     setPreviousStep(currentStep);
     setCurrentStep((step) => step + 1);
   };
+const isStep2Valid =
+  currentStep === 1 &&
+  stepFields[1].every(
+    (field) => !form.formState.errors[field]
+  );
+
+  
   return (
     <section className="absolute inset-0 flex flex-col justify-between p-24">
       <Stepper steps={steps} currentStep={currentStep} />
@@ -185,19 +175,15 @@ export default function MultiStepForm() {
             )}
 
             {currentStep === 1 && (
-              <motion.div
-                key={`step-${currentStep}`}
-                initial={{
-                  x: previousStep < currentStep ? "50%" : "-50%",
-                  opacity: 0,
-                }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{
-                  x: previousStep < currentStep ? "-50%" : "50%",
-                  opacity: 0,
-                }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-              >
+      
+             <motion.div
+  key={`step-${currentStep}`}
+  initial={{ x: "-50%", opacity: 0 }}   
+  animate={{ x: 0, opacity: 1 }}        
+ 
+  transition={{  ease: "easeOut" }}
+>
+
                 <DocumentStep
                   form={form}
                   issueDateType={issueDateType}
@@ -283,7 +269,7 @@ export default function MultiStepForm() {
                 </Button>
               )}
 
-              {currentStep === 1 && (
+              {currentStep === 1 && isStep2Valid&& (
                 <Button
                   type="submit"
                   variant="outline"
