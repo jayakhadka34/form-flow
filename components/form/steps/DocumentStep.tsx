@@ -23,6 +23,7 @@ import { NEPALI_DISTRICTS } from "@/lib/nepali-districts";
 import { IssueDatePicker } from "@/components/ui/issuedatepicker";
 import { Inputs } from "../form.types";
 
+
 type PreviewState = {
   previewUrl: string | null;
   setPreviewUrl: React.Dispatch<React.SetStateAction<string | null>>;
@@ -71,13 +72,40 @@ export function DocumentStep({
     setBackFileName,
   } = previewState;
 
-  // cleanup object URLs
+  
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (backPreviewUrl) URL.revokeObjectURL(backPreviewUrl);
     };
   }, [previewUrl, backPreviewUrl]);
+
+useEffect(() => {
+  const file = form.watch("citizenshipFront");
+
+  if (file instanceof File) {
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setFileType(file.type.startsWith("image") ? "image" : "pdf");
+    setFileName(file.name);
+
+    return () => URL.revokeObjectURL(url);
+  }
+}, []);
+
+
+useEffect(() => {
+  const file = form.watch("citizenshipBack");
+
+  if (file instanceof File) {
+    const url = URL.createObjectURL(file);
+    setBackPreviewUrl(url);
+    setBackFileType(file.type.startsWith("image") ? "image" : "pdf");
+    setBackFileName(file.name);
+
+    return () => URL.revokeObjectURL(url);
+  }
+}, []);
 
   return (
     <>

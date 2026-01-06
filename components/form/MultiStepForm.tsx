@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { FormDataSchema } from "@/lib/schemas/schema";
 import { Stepper } from "./Stepper";
@@ -16,7 +16,6 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import { fileToBase64 } from "@/lib/fileto-base64";
 
-
 export type Inputs = z.infer<typeof FormDataSchema>;
 
 const steps = [
@@ -25,61 +24,53 @@ const steps = [
   { id: "Step 3", name: "Complete" },
 ];
 export default function MultiStepForm() {
-    const [previousStep, setPreviousStep] = useState(0);
+  const [previousStep, setPreviousStep] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [dobType, setDobType] = useState<"BS" | "AD">("AD");
   const [issueDateType, setIssueDateType] = useState<"BS" | "AD">("AD");
-const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
-const [fileName, setFileName] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
-const [backPreviewUrl, setBackPreviewUrl] = useState<string | null>(null);
-const [backFileType, setBackFileType] = useState<"image" | "pdf" | null>(null);
-const [backFileName, setBackFileName] = useState<string | null>(null);
+  const [backPreviewUrl, setBackPreviewUrl] = useState<string | null>(null);
+  const [backFileType, setBackFileType] = useState<"image" | "pdf" | null>(
+    null
+  );
+  const [backFileName, setBackFileName] = useState<string | null>(null);
 
-const stepFields: (keyof Inputs)[][] = [
- 
-  [
-    "fullNameEn",
-    "fullNameNp",
-    "gender",
-    "dateOfBirthAD",
-    "phoneNumber"
-  ],
+  const stepFields: (keyof Inputs)[][] = [
+    ["fullNameEn", "fullNameNp", "gender", "dateOfBirthAD", "phoneNumber"],
 
-  
-  [
-    "citizenshipNumber",
-    "issuedDistrict",
-    "issueDateAD",
-    "citizenshipFront",
-    "citizenshipBack",
-  ],
-];
+    [
+      "citizenshipNumber",
+      "issuedDistrict",
+      "issueDateAD",
+      "citizenshipFront",
+      "citizenshipBack",
+    ],
+  ];
 
+  const form = useForm<Inputs>({
+    resolver: zodResolver(FormDataSchema),
+    defaultValues: {
+      fullNameEn: "",
+      fullNameNp: "",
+      gender: undefined,
+      dateOfBirthAD: "",
+      dateOfBirthBS: "",
+      age: undefined,
+      phoneNumber: "",
 
- 
-    const form = useForm<Inputs>({
-  resolver: zodResolver(FormDataSchema),
-  defaultValues: {
-    fullNameEn: "",
-    fullNameNp: "",
-    gender: undefined,
-    dateOfBirthAD: "",
-    dateOfBirthBS: "",
-    age: undefined,
-    phoneNumber: "",
+      citizenshipNumber: "",
+      issuedDistrict: "",
+      issueDateAD: "",
+      issueDateBS: "",
+      citizenshipFront: undefined,
+      citizenshipBack: undefined,
+    },
+  });
 
-    citizenshipNumber: "",
-    issuedDistrict: "",
-    issueDateAD: "",
-    issueDateBS: "",
-    citizenshipFront: undefined,
-    citizenshipBack: undefined,
-  },
-});
-
-   const {
+  const {
     control,
     handleSubmit,
     trigger,
@@ -90,38 +81,28 @@ const stepFields: (keyof Inputs)[][] = [
     setError,
   } = form;
 
+  const processForm = async (data: Inputs) => {
+    try {
+      const citizenshipFrontBase64 = await fileToBase64(data.citizenshipFront);
 
+      const citizenshipBackBase64 = await fileToBase64(data.citizenshipBack);
 
-  
+      const userData = {
+        ...data,
+        citizenshipFront: citizenshipFrontBase64,
+        citizenshipBack: citizenshipBackBase64,
+      };
 
-const processForm = async (data: Inputs) => {
-  try {
-    const citizenshipFrontBase64 = await fileToBase64(
-      data.citizenshipFront
-    );
+      console.log("DATA", userData);
 
-    const citizenshipBackBase64 = await fileToBase64(
-      data.citizenshipBack
-    );
+      setCurrentStep(2);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to process files");
+    }
+  };
 
-    const userData = {
-      ...data,
-      citizenshipFront: citizenshipFrontBase64,
-      citizenshipBack: citizenshipBackBase64,
-    };
-
-    console.log("DATA", userData);
-
-    
-
-    setCurrentStep(2);
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to process files");
-  }
-};
-
-   const goPrevStep = () => {
+  const goPrevStep = () => {
     if (currentStep > 0) {
       setPreviousStep(currentStep);
       setCurrentStep((step) => step - 1);
@@ -133,19 +114,16 @@ const processForm = async (data: Inputs) => {
       const age = watch("age");
       const gender = watch("gender");
       const phone = watch("phoneNumber");
-// const isValid = await trigger(stepFields[0], {
-//   shouldFocus: true,
-// });
-const dobField =
-  dobType === "AD" ? "dateOfBirthAD" : "dateOfBirthBS";
 
-const isValid = await trigger([
-  "fullNameEn",
-  "fullNameNp",
-  "gender",
-  dobField,
-  "phoneNumber",
-]);
+      const dobField = dobType === "AD" ? "dateOfBirthAD" : "dateOfBirthBS";
+
+      const isValid = await trigger([
+        "fullNameEn",
+        "fullNameNp",
+        "gender",
+        dobField,
+        "phoneNumber",
+      ]);
 
       if (
         gender === "male" &&
@@ -164,10 +142,9 @@ const isValid = await trigger([
     }
 
     if (currentStep === 1) {
-     const isValid = await trigger(stepFields[1], {
-  shouldFocus: true,
-});
-
+      const isValid = await trigger(stepFields[1], {
+        shouldFocus: true,
+      });
 
       if (!isValid) {
         toast.error("Please complete all document fields");
@@ -183,40 +160,79 @@ const isValid = await trigger([
       <Stepper steps={steps} currentStep={currentStep} />
 
       <Form {...form}>
-        <form key={currentStep} onSubmit={handleSubmit(processForm)}>
-          {currentStep === 0 && (
-            <PersonalStep
-              form={form}
-              dobType={dobType}
-              setDobType={setDobType}
-            />
-          )}
+        <form onSubmit={handleSubmit(processForm)}>
+          <AnimatePresence mode="wait">
+            {currentStep === 0 && (
+              <motion.div
+                key={`step-${currentStep}`}
+                initial={{
+                  x: previousStep < currentStep ? "50%" : "-50%",
+                  opacity: 0,
+                }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{
+                  x: previousStep < currentStep ? "-50%" : "50%",
+                  opacity: 0,
+                }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <PersonalStep
+                  form={form}
+                  dobType={dobType}
+                  setDobType={setDobType}
+                />
+              </motion.div>
+            )}
 
-          {currentStep === 1 && (
-            <DocumentStep
-              form={form}
-              issueDateType={issueDateType}
-              setIssueDateType={setIssueDateType}
-              previewState={{
-                previewUrl,
-                setPreviewUrl,
-                fileType,
-                setFileType,
-                fileName,
-                setFileName,
-                backPreviewUrl,
-                setBackPreviewUrl,
-                backFileType,
-                setBackFileType,
-                backFileName,
-                setBackFileName,
-              }}
-            />
-          )}
+            {currentStep === 1 && (
+              <motion.div
+                key={`step-${currentStep}`}
+                initial={{
+                  x: previousStep < currentStep ? "50%" : "-50%",
+                  opacity: 0,
+                }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{
+                  x: previousStep < currentStep ? "-50%" : "50%",
+                  opacity: 0,
+                }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <DocumentStep
+                  form={form}
+                  issueDateType={issueDateType}
+                  setIssueDateType={setIssueDateType}
+                  previewState={{
+                    previewUrl,
+                    setPreviewUrl,
+                    fileType,
+                    setFileType,
+                    fileName,
+                    setFileName,
+                    backPreviewUrl,
+                    setBackPreviewUrl,
+                    backFileType,
+                    setBackFileType,
+                    backFileName,
+                    setBackFileName,
+                  }}
+                />
+              </motion.div>
+            )}
 
-          {currentStep === 2 && <CompleteStep />}
+            {currentStep === 2 && (
+              <motion.div
+                key={`step-${currentStep}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CompleteStep />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-         <div className="mt-8 pt-5">
+          <div className="mt-8 pt-5">
             <div className="flex justify-between">
               <Button
                 type="button"

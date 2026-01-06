@@ -36,8 +36,10 @@ export function PersonalStep({
 }: PersonalStepProps) {
   const { control, watch, setValue } = form;
 
+  const nepali = useNepaliTyping()
+
   
-  const nepaliName = useNepaliTyping();
+
 
   const gender = watch("gender");
   const age = Number(watch("age"));
@@ -85,37 +87,45 @@ export function PersonalStep({
 
      
         <div className="sm:col-span-3">
+
+
 <FormField
   control={control}
   name="fullNameNp"
   render={({ field }) => (
     <FormItem>
       <FormLabel>
-        Full Name (Nepali){" "}
-        <span className="text-muted-foreground">(Optional)</span>
+        Full Name (Nepali)
+        <span className="text-muted-foreground"> (Optional)</span>
       </FormLabel>
 
       <FormControl>
-      <Input
-  placeholder=" जया खड्का"
- value={field.value ?? ""}
-onChange={(e) => {
-  nepaliName.setValue(e.target.value);
-  field.onChange(e.target.value);
-}}
-  onKeyDown={nepaliName.handleKeyDown}
-  onBlur={() => {
-    nepaliName.convertRemainingWord();
-    field.onChange(nepaliName.value);
-  }}
-/>
-
+        <Input
+          placeholder="जया खड्का"
+          value={field.value || ""}
+          onChange={(e) => field.onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === " ") {
+              e.preventDefault()
+              field.onChange(
+                nepali.convertOnSpace(field.value || "")
+              )
+            }
+          }}
+          onBlur={() => {
+            field.onChange(
+              nepali.convertRemainingWord(field.value || "")
+            )
+          }}
+        />
       </FormControl>
 
       <FormMessage />
     </FormItem>
   )}
 />
+
+
 
 
 

@@ -1,4 +1,4 @@
-// utils/date.ts
+
 import NepaliDate from "nepali-date-converter";
 
 export function adToBs(date: Date): string {
