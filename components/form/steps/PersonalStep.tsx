@@ -181,9 +181,10 @@ export function PersonalStep({ form, dobType, setDobType }: PersonalStepProps) {
                 <FormControl>
                   <Input
                     {...field}
-                    disabled={!phoneEnabled}
+                    readOnly={!phoneEnabled}
                     placeholder="98XXXXXXXX"
                     inputMode="numeric"
+                      className={!phoneEnabled ? "opacity-50 cursor-not-allowed" : ""}
                   />
                 </FormControl>
                 {phoneEnabled && (

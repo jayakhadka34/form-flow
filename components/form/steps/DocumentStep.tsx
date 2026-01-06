@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 
 import { Input } from "@/components/ui/input";
@@ -18,10 +19,17 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { NEPALI_DISTRICTS } from "@/lib/nepali-districts";
 import { IssueDatePicker } from "@/components/ui/issuedatepicker";
 import { Inputs } from "../form.types";
+
 
 
 type PreviewState = {
@@ -49,6 +57,8 @@ type DocumentStepProps = {
   previewState: PreviewState;
 };
 
+
+
 export function DocumentStep({
   form,
   issueDateType,
@@ -72,7 +82,15 @@ export function DocumentStep({
     setBackFileName,
   } = previewState;
 
-  
+ 
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [activePreview, setActivePreview] = useState<{
+    url: string;
+    type: "image" | "pdf";
+    title: string;
+  } | null>(null);
+
+ 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -80,32 +98,15 @@ export function DocumentStep({
     };
   }, [previewUrl, backPreviewUrl]);
 
-useEffect(() => {
-  const file = form.watch("citizenshipFront");
-
-  if (file instanceof File) {
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setFileType(file.type.startsWith("image") ? "image" : "pdf");
-    setFileName(file.name);
-
-    return () => URL.revokeObjectURL(url);
-  }
-}, []);
-
-
-useEffect(() => {
-  const file = form.watch("citizenshipBack");
-
-  if (file instanceof File) {
-    const url = URL.createObjectURL(file);
-    setBackPreviewUrl(url);
-    setBackFileType(file.type.startsWith("image") ? "image" : "pdf");
-    setBackFileName(file.name);
-
-    return () => URL.revokeObjectURL(url);
-  }
-}, []);
+  
+  const openPreview = (
+    url: string,
+    type: "image" | "pdf",
+    title: string
+  ) => {
+    setActivePreview({ url, type, title });
+    setIsPreviewOpen(true);
+  };
 
   return (
     <>
@@ -117,7 +118,7 @@ useEffect(() => {
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-       
+        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -134,14 +135,14 @@ useEffect(() => {
           />
         </div>
 
-        
+       
         <div className="sm:col-span-3">
           <FormField
             control={control}
             name="issuedDistrict"
             render={({ field }) => (
               <FormItem>
-                <FormLabel >Issued District</FormLabel>
+                <FormLabel>Issued District</FormLabel>
                 <Select
                   value={field.value ?? ""}
                   onValueChange={field.onChange}
@@ -168,7 +169,6 @@ useEffect(() => {
           />
         </div>
 
-        
         <div className="sm:col-span-3">
           <IssueDatePicker
             control={control}
@@ -178,7 +178,7 @@ useEffect(() => {
           />
         </div>
 
-       
+        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -191,37 +191,53 @@ useEffect(() => {
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={(e) => {
-                      const file = e.target.files?.[0] ?? null;
+                      const file = e.target.files?.[0];
                       field.onChange(file);
 
                       if (!file) return;
 
+                      const url = URL.createObjectURL(file);
+                      setPreviewUrl(url);
                       setFileName(file.name);
-
-                      if (file.type.startsWith("image")) {
-                        const url = URL.createObjectURL(file);
-                        setPreviewUrl(url);
-                        setFileType("image");
-                      } else {
-                        setFileType("pdf");
-                      }
+                      setFileType(
+                        file.type.startsWith("image") ? "image" : "pdf"
+                      );
                     }}
                   />
                 </FormControl>
 
-                {previewUrl && fileType === "image" && (
-                  <img
-                    src={previewUrl}
-                    alt="Front Preview"
-                    className="mt-2 h-32 rounded border"
-                  />
-                )}
+              
+{previewUrl && fileType === "image" && (
+  <div className="relative mt-2 inline-block">
+    <img
+      src={previewUrl}
+      alt="Front Preview"
+      className="h-32 rounded border"
+    />
 
-                {fileType === "pdf" && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    {fileName}
-                  </p>
-                )}
+    <button
+      type="button"
+      onClick={() =>
+        openPreview(previewUrl, "image", fileName || "Citizenship Front")
+      }
+      className="absolute bottom-1 right-1 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black"
+    >
+      View
+    </button>
+  </div>
+)}
+
+{fileType === "pdf" && (
+  <button
+    type="button"
+    onClick={() =>
+      openPreview(previewUrl!, "pdf", fileName || "Citizenship Front")
+    }
+    className="mt-2 text-sm text-blue-600 underline"
+  >
+    View PDF
+  </button>
+)}
 
                 <FormMessage />
               </FormItem>
@@ -229,6 +245,7 @@ useEffect(() => {
           />
         </div>
 
+        
         <div className="sm:col-span-3">
           <FormField
             control={control}
@@ -241,37 +258,62 @@ useEffect(() => {
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={(e) => {
-                      const file = e.target.files?.[0] ?? null;
+                      const file = e.target.files?.[0];
                       field.onChange(file);
 
                       if (!file) return;
 
+                      const url = URL.createObjectURL(file);
+                      setBackPreviewUrl(url);
                       setBackFileName(file.name);
-
-                      if (file.type.startsWith("image")) {
-                        const url = URL.createObjectURL(file);
-                        setBackPreviewUrl(url);
-                        setBackFileType("image");
-                      } else {
-                        setBackFileType("pdf");
-                      }
+                      setBackFileType(
+                        file.type.startsWith("image") ? "image" : "pdf"
+                      );
                     }}
                   />
                 </FormControl>
 
+               
                 {backPreviewUrl && backFileType === "image" && (
-                  <img
-                    src={backPreviewUrl}
-                    alt="Back Preview"
-                    className="mt-2 h-32 rounded border"
-                  />
-                )}
+  <div className="relative mt-2 inline-block">
+    <img
+      src={backPreviewUrl}
+      alt="Back Preview"
+      className="h-32 rounded border"
+    />
 
-                {backFileType === "pdf" && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    {backFileName}
-                  </p>
-                )}
+    <button
+      type="button"
+      onClick={() =>
+        openPreview(
+          backPreviewUrl,
+          "image",
+          backFileName || "Citizenship Back"
+        )
+      }
+      className="absolute bottom-1 right-1 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black"
+    >
+      View
+    </button>
+  </div>
+)}
+
+{backFileType === "pdf" && (
+  <button
+    type="button"
+    onClick={() =>
+      openPreview(
+        backPreviewUrl!,
+        "pdf",
+        backFileName || "Citizenship Back"
+      )
+    }
+    className="mt-2 text-sm text-blue-600 underline"
+  >
+    View PDF
+  </button>
+)}
+
 
                 <FormMessage />
               </FormItem>
@@ -279,6 +321,30 @@ useEffect(() => {
           />
         </div>
       </div>
+
+     
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{activePreview?.title}</DialogTitle>
+          </DialogHeader>
+
+          {activePreview?.type === "image" && (
+            <img
+              src={activePreview.url}
+              alt="Preview"
+              className="w-full rounded"
+            />
+          )}
+
+          {activePreview?.type === "pdf" && (
+            <iframe
+              src={activePreview.url}
+              className="h-[80vh] w-full"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -5,8 +5,12 @@ import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  FormDataSchema,
+  Step1Schema,
+} from "@/lib/schemas/schema";
 
-import { FormDataSchema } from "@/lib/schemas/schema";
+
 import { Stepper } from "./Stepper";
 import { PersonalStep } from "./steps/PersonalStep";
 import { DocumentStep } from "./steps/DocumentStep";
@@ -39,7 +43,15 @@ export default function MultiStepForm() {
   const [backFileName, setBackFileName] = useState<string | null>(null);
 
   const stepFields: (keyof Inputs)[][] = [
-    ["fullNameEn", "fullNameNp", "gender", "dateOfBirthAD", "phoneNumber"],
+     [
+    "fullNameEn",
+    "fullNameNp",
+    "gender",
+    "dateOfBirthAD",
+    "dateOfBirthBS",
+    "age",
+    "phoneNumber",
+  ],
 
     [
       "citizenshipNumber",
@@ -52,6 +64,8 @@ export default function MultiStepForm() {
 
   const form = useForm<Inputs>({
     resolver: zodResolver(FormDataSchema),
+    mode:"onChange", 
+    shouldUnregister: false,
     defaultValues: {
       fullNameEn: "",
       fullNameNp: "",
@@ -107,37 +121,41 @@ export default function MultiStepForm() {
     }
   };
 
-  const goNextStep = async () => {
-    if (currentStep === 0) {
-    
 
-      const dobField = dobType === "AD" ? "dateOfBirthAD" : "dateOfBirthBS";
+const goNextStep = async () => {
+  if (currentStep === 0) {
+    const values = form.getValues();
+    const result = Step1Schema.safeParse(values);
 
-      const isValid = await trigger([
-        "fullNameEn",
-        "fullNameNp",
-        "gender",
-        dobField,
-        "phoneNumber",
-      ]);
-
-      if (!isValid) return;
-    }
-
-    if (currentStep === 1) {
-      const isValid = await trigger(stepFields[1], {
-        shouldFocus: true,
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        form.setError(issue.path[0] as any, {
+          type: "manual",
+          message: issue.message,
+        });
       });
-
-      if (!isValid) {
-        toast.error("Please complete all document fields");
-        return;
-      }
+      return;
     }
+  }
 
-    setPreviousStep(currentStep);
-    setCurrentStep((step) => step + 1);
-  };
+  if (currentStep === 1) {
+    const isValid = await form.trigger([
+      "citizenshipNumber",
+      "issuedDistrict",
+      "issueDateAD",
+      "issueDateBS",
+      "citizenshipFront",
+      "citizenshipBack",
+    ]);
+
+    if (!isValid) return;
+  }
+
+  setPreviousStep(currentStep);
+  setCurrentStep((step) => step + 1);
+};
+
+
 const isStep2Valid =
   currentStep === 1 &&
   stepFields[1].every(
